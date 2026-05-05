@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Claude Usage Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 40px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .gauge-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .gauge-bg {
+            width: 280px;
+            height: 280px;
+        }
+
+        .percentage-text {
+            position: absolute;
+            font-size: 72px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            text-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .percentage-label {
+            position: absolute;
+            top: 65%;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .stats-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+        }
+
+        .stat-subtext {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 4px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .last-update {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .refresh-timer {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timer-bar {
+            width: 60px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s linear;
+        }
+
+        .error-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+            z-index: 1000;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .loading {
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">CLAUDE MONITOR</div>
+            <div class="status">
+                <div class="status-dot"></div>
+                <span id="statusText">Conectando...</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="gauge-container">
+                <svg class="gauge-bg" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12"/>
+                    <circle id="gaugeCircle" cx="100" cy="100" r="80" fill="none" 
+                            stroke="url(#gradient)" stroke-width="12" 
+                            stroke-linecap="round"
+                            stroke-dasharray="502.65"
+                            stroke-dashoffset="502.65"
+                            transform="rotate(-90 100 100)"
+                            style="transition: stroke-dashoffset 1s ease"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="percentage-text" id="percentageText">0%</div>
+                <div class="percentage-label">En uso</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Tokens usados</div>
+                    <div class="stat-value" id="tokensUsed">0</div>
+                    <div class="stat-subtext">Del periodo actual</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Límite mensual</div>
+                    <div class="stat-value" id="tokensLimit">-</div>
+                    <div class="stat-subtext">Tokens disponibles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Crédito actual</div>
+                    <div class="stat-value" id="creditBalance">$0.00</div>
+                    <div class="stat-subtext">Balance disponible</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Estado API</div>
+                    <div class="stat-value" id="apiStatus" style="font-size: 20px;">●</div>
+                    <div class="stat-subtext" id="apiStatusText">Verificando...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="last-update">Última actualización: <span id="lastUpdate">Nunca</span></div>
+            <div class="refresh-timer">
+                Próxima actualización: <span id="countdown">15s</span>
+                <div class="timer-bar">
+                    <div class="timer-fill" id="timerFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const REFRESH_INTERVAL = 15000;
+        let countdownInterval;
+        let timerInterval;
+
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 8000);
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('es-PE').format(num);
+        }
+
+        function updateGauge(percentage) {
+            const circle = document.getElementById('gaugeCircle');
+            const text = document.getElementById('percentageText');
+            const circumference = 502.65;
+            const offset = circumference - (percentage / 100) * circumference;
+            
+            circle.style.strokeDashoffset = offset;
+            text.textContent = Math.round(percentage) + '%';
+
+            const gradient = document.querySelector('#gradient');
+            if (percentage < 50) {
+                gradient.innerHTML = '<stop offset="0%" style="stop-color:#4ade80;stop-opacity:1" /><stop offset="100%" style="stop-color:#22c55e;stop-opacity:1" />';
+            } else if (percentage < 80) {
+                gradient.innerHTML = '<stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" /><stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />';
+            } else {
+                gradient.innerHTML = '<stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" /><stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />';
+            }
+        }
+
+        async function fetchUsageData() {
+            document.querySelector('.container').classList.add('loading');
+
+            try {
+                // Llamar a NUESTRA función serverless en Vercel
+                const response = await fetch('/api/usage');
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                
+                const tokensUsed = data.usage?.input_tokens || data.input_tokens || 0;
+                const tokensLimit = data.usage?.limit || data.limit || 1000000;
+                const percentage = tokensLimit > 0 ? (tokensUsed / tokensLimit) * 100 : 0;
+
+                updateGauge(percentage);
+                document.getElementById('tokensUsed').textContent = formatNumber(tokensUsed);
+                document.getElementById('tokensLimit').textContent = formatNumber(tokensLimit);
+                document.getElementById('creditBalance').textContent = '$' + ((data.balance || 0).toFixed(2));
+                
+                document.getElementById('apiStatus').textContent = '●';
+                document.getElementById('apiStatus').style.color = '#4ade80';
+                document.getElementById('apiStatusText').textContent = 'Operativo';
+                document.getElementById('statusText').textContent = 'Conectado';
+
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('es-PE');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error al conectar: ' + error.message);
+                document.getElementById('apiStatus').textContent = '●';
+                document.getElementById('apiStatus').style.color = '#ef4444';
+                document.getElementById('apiStatusText').textContent = 'Error';
+                document.getElementById('statusText').textContent = 'Desconectado';
+            } finally {
+                document.querySelector('.container').classList.remove('loading');
+            }
+        }
+
+        function startCountdown() {
+            let secondsLeft = REFRESH_INTERVAL / 1000;
+            
+            clearInterval(countdownInterval);
+            clearInterval(timerInterval);
+
+            countdownInterval = setInterval(() => {
+                document.getElementById('countdown').textContent = secondsLeft + 's';
+                secondsLeft--;
+                if (secondsLeft < 0) secondsLeft = REFRESH_INTERVAL / 1000;
+            }, 1000);
+
+            let progress = 0;
+            timerInterval = setInterval(() => {
+                progress += (100 / (REFRESH_INTERVAL / 100));
+                document.getElementById('timerFill').style.width = Math.min(progress, 100) + '%';
+                if (progress >= 100) progress = 0;
+            }, 100);
+        }
+
+        createStars();
+        fetchUsageData();
+        startCountdown();
+        setInterval(fetchUsageData, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
